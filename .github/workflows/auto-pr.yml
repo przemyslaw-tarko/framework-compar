@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["CI Base"]
     types: [completed]
+
 permissions:
   contents: write
   pull-requests: write
@@ -23,13 +24,13 @@ jobs:
             const headBranch = context.payload.workflow_run.head_branch;
             const baseBranch = 'main';
 
-            if (context.payload.workflow_run.event !== 'push'){
-              core.info('Skipping: workflow_run event is '${context.payload.workflow_run.event});
+            if (context.payload.workflow_run.event !== 'push') {
+              core.info(`Skipping: workflow_run event is '${context.payload.workflow_run.event}'.`);
               return;
             }
 
-            if (headBranch !== 'app'){
-              core.info('Skipping: head branch is '${headBranch}' is not 'app'.');
+            if (headBranch !== 'app') {
+              core.info(`Skipping: head branch '${headBranch}' is not 'app'.`);
               return;
             }
 
@@ -46,14 +47,14 @@ jobs:
               pr = existing.data[0];
               core.info(`PR already exists: #${pr.number}`);
             } else {
-              pr = await github.rest.pulls.create({
+              pr = (await github.rest.pulls.create({
                 owner,
                 repo,
                 head: headBranch,
                 base: baseBranch,
                 title: `Auto PR: Merge ${headBranch} into ${baseBranch}`,
                 body: 'This PR was automatically created by the workflow after a successful CI run.'
-              }).data;
+              })).data;
               core.info(`Created PR: #${pr.number}`);
             }
 
