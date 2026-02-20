@@ -3,6 +3,9 @@ name: CD Base
 on:
   push:
     branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/cd.yml'
   workflow_dispatch:
 
 jobs:

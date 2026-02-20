@@ -2,9 +2,15 @@ name: CI Base
 
 on:
   push:
-    branches: [main]
+    branches: [app, main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 jobs:
@@ -13,5 +19,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: CI placeholder
         run: echo "CI is ready"
