@@ -1,0 +1,68 @@
+name: Auto PR to main
+
+on:
+  workflow_run:
+    workflows: ["CI Base"]
+    types: [completed]
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or update PR and enable auto-merge
+        id: create_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const headBranch = context.payload.workflow_run.head_branch;
+            const baseBranch = 'main';
+
+            if (context.payload.workflow_run.event !== 'push'){
+              core.info('Skipping: workflow_run event is '${context.payload.workflow_run.event});
+              return;
+            }
+
+            if (headBranch !== 'app'){
+              core.info('Skipping: head branch is '${headBranch}' is not 'app'.');
+              return;
+            }
+
+            const existing = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${headBranch}`,
+              base: baseBranch,
+              state: 'open'
+            });
+
+            let pr;
+            if (existing.data.length > 0) {
+              pr = existing.data[0];
+              core.info(`PR already exists: #${pr.number}`);
+            } else {
+              pr = await github.rest.pulls.create({
+                owner,
+                repo,
+                head: headBranch,
+                base: baseBranch,
+                title: `Auto PR: Merge ${headBranch} into ${baseBranch}`,
+                body: 'This PR was automatically created by the workflow after a successful CI run.'
+              }).data;
+              core.info(`Created PR: #${pr.number}`);
+            }
+
+            core.setOutput('pr_number', String(pr.number));
+
+      - name: Enable auto-merge
+        if: steps.create_pr.outputs.pr_number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ steps.create_pr.outputs.pr_number }} --auto --squash || \
+            echo "Failed to enable auto-merge, it might already be enabled or there might be merge conflicts."

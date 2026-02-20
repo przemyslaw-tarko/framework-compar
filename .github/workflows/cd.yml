@@ -3,11 +3,20 @@ name: CD Base
 on:
   push:
     branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/cd.yml'
   workflow_dispatch:
 
 jobs:
   base:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULES_TOKEN }}
+
       - name: CD placeholder
         run: echo "CD is ready"
