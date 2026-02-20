@@ -1,0 +1,13 @@
+name: CD Base
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  base:
+    runs-on: ubuntu-latest
+    steps:
+      - name: CD placeholder
+        run: echo "CD is ready"
