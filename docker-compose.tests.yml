@@ -36,7 +36,7 @@ services:
 
   cypress-tests:
     container_name: cypress-tests
-    image: cypress/included:13.17.0
+    image: cypress/included:15.10.0
     entrypoint: ["/bin/sh", "-lc"]
     working_dir: /work/tests/cypress
     environment:
