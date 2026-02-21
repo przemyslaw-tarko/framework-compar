@@ -1,4 +1,4 @@
-service:
+services:
   selenium-chrome:
     container_name: selenium-chrome
     image: selenium/standalone-chrome:latest
