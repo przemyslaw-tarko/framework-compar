@@ -2,7 +2,7 @@ name: Auto PR to main
 
 on:
   workflow_run:
-    workflows: ["CI Base", "E2E Selenium"]
+    workflows: ["CI Base", "E2E Selenium", "E2E Cypress"]
     types: [completed]
 
 permissions:

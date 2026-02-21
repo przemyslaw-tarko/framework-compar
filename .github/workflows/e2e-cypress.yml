@@ -26,7 +26,7 @@ jobs:
           token: ${{ secrets.SUBMODULES_TOKEN }}
 
       - name: Start app stack
-        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up
+        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d
 
       - name : Wait for app
         run: |
