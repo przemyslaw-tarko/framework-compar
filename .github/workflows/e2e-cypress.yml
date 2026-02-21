@@ -38,7 +38,7 @@ jobs:
           exit 1
 
       - name: Run Cypress tests
-        run: docker compose -f docker-compose.tests.yml run --rm cypress-tests
+        run: docker compose -f docker-compose.tests.yml run --rm cypress-tests 2>/dev/null
 
       - name: Upload Cypress result
         if: always()

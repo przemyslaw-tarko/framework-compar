@@ -43,7 +43,7 @@ jobs:
         run: docker compose -f docker-compose.tests.yml up -d --quiet-pull selenium-chrome
 
       - name: Run Selenium tests
-        run: docker compose -f docker-compose.tests.yml run --rm selenium-tests
+        run: docker compose -f docker-compose.tests.yml run --rm selenium-tests 2>/dev/null
 
       - name: Upload Selenium result
         if: always()

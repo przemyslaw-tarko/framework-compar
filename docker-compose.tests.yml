@@ -41,6 +41,8 @@ services:
     working_dir: /work/tests/cypress
     environment:
       CYPRESS_BASE_URL: http://wordpress
+      CYPRESS_NO_COMMAND_LOG: "1"
+      CYPRESS_LOG_LEVEL: "error"
       NPM_CONFIG_UPDATE_NOTIFIER: "false"
       NPM_CONFIG_FUND: "false"
       NPM_CONFIG_AUDIT: "false"
@@ -49,7 +51,7 @@ services:
       - ./:/work
     networks:
       - wpsite
-    command: ["npm ci --no-audit --no-fund --loglevel=error --silent && npx cypress run"]
+    command: ["npm ci --no-audit --no-fund --loglevel=error --silent && npx cypress run --quiet"]
 
 
 networks:
