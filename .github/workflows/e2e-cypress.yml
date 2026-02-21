@@ -1,9 +1,7 @@
-
-name: E2E Selenium
+name: E2E Cypress
 
 on:
   push:
-    branches: [fw-selenium, main]
     paths:
       - 'app/**'
       - 'tests/selenium/**'
@@ -18,7 +16,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  e2e-selenium:
+  e2e-cypress:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,9 +26,9 @@ jobs:
           token: ${{ secrets.SUBMODULES_TOKEN }}
 
       - name: Start app stack
-        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d
+        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up
 
-      - name: Wait for app
+      - name : Wait for app
         run: |
           for i in {1..30}; do
             curl -fsS http://localhost:8080/wp-login.php && exit 0
@@ -39,18 +37,15 @@ jobs:
           echo " App did not become ready in time" >&2
           exit 1
 
-      - name: Start Selenium Chrome
-        run: docker compose -f docker-compose.tests.yml up -d selenium-chrome
+      - name: Run Cypress tests
+        run: docker compose -f docker-compose.tests.yml run --rm cypress-tests
 
-      - name: Run Selenium tests
-        run: docker compose -f docker-compose.tests.yml run --rm selenium-tests
-
-      - name: Upload Selenium result
+      - name: Upload Cypress result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: result-selenium-tests
-          path: results/selenium/results.xml
+          name: result-cypress-tests
+          path: results/cypress/results.xml
           if-no-files-found: error
 
       - name: Teardown
