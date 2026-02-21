@@ -1,0 +1,55 @@
+
+name: E2E Selenium
+
+on:
+  push:
+    branches: [fw/selenium, main]
+    paths:
+      - 'app/**'
+      - 'tests/selenium/**'
+      - '.github/workflows/e2e-selenium.yml'
+  workflow_dispatch:
+
+jobs:
+  e2e-selenium:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULES_TOKEN }}
+
+      - name: Start app stack
+        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d
+
+      - name: Wait for app
+        run: |
+          for i in {1..30}; do
+            curl -fsS http://lockalhost:8080/wp-login.php && exit 0
+            sleep 10
+          done
+          echo " App did not become ready in time" >&2
+          exit 1
+
+      - name: Start Selenium Chrome
+        run: docker compose -f docker-compose.tests.yml up -d selenium-chrome
+
+      - name: Run Selenium tests
+        run: docker compose -f docker-compose.tests.yml up selenium-tests
+
+      - name: Upload Selenium result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-selenium-tests
+          path: results/selenium/results.xml
+          if-no-files-found: error
+
+      - name: eardown
+        if: always()    
+        run: |
+          docker compose -f docker-compose.tests.yml down --remove-orphans || true
+          if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
+            docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
+          fi

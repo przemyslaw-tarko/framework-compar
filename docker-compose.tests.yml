@@ -1,0 +1,39 @@
+service:
+  selenium-chrome:
+    container_name: selenium-chrome
+    image: selenium/standalone-chrome:latest
+    shm_size: "2gb"
+    ports:
+      - "4444:4444"
+    networks:
+      - wpsite
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/wd/hub/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  selenium-tests:
+    container_name: selenium-tests
+    image: node:20-bookworm
+    working_dir: /work/tests/selenium
+    depends_on:
+      selenium-chrome:
+        condition: service_healthy
+    environment:
+      BASE_URL: http://wordpress
+      SELENIUM_REMOTE_URL: http://selenium-chrome:4444/wd/hub
+      NPM_CONFIG_UPDATE_NOTIFIER: "false"
+      NPM_CONFIG_FUND: "false"
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_LOGLEVEL: "error"
+    volumes:
+      - ./:/work
+    networks:
+      - wpsite
+    command: ["/bin/sh", "-lc", npm ci --no-audit --no-fund --loglevel=error && node tests/s_smoke.js"]
+networks:
+  wpsite:
+    external: true
+    name: docker-test-bookstore_wpsite
