@@ -7,4 +7,4 @@ describe("Cypres Smoke", () => {
     cy.title().should("include", "Test App");
   });
 });
-// test auto PR
+// test auto
