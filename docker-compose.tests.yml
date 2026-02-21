@@ -32,7 +32,7 @@ services:
       - ./:/work
     networks:
       - wpsite
-    command: ["/bin/sh", "-lc", "npm ci --no-audit --no-fund --loglevel=error && node tests/s_smoke.js"]
+    command: ["/bin/sh", "-lc", "npm ci --no-audit --no-fund --loglevel=error --silent && node tests/s_smoke.js"]
 
   cypress-tests:
     container_name: cypress-tests
@@ -49,7 +49,7 @@ services:
       - ./:/work
     networks:
       - wpsite
-    command: ["npm ci --no-audit --no-fund --loglevel=error && npx cypress run"]
+    command: ["npm ci --no-audit --no-fund --loglevel=error --silent && npx cypress run"]
 
 
 networks:

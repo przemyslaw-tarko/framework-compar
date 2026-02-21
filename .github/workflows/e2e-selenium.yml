@@ -28,7 +28,7 @@ jobs:
           token: ${{ secrets.SUBMODULES_TOKEN }}
 
       - name: Start app stack
-        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d
+        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
 
       - name: Wait for app
         run: |
@@ -36,11 +36,11 @@ jobs:
             curl -fsS -o /dev/null http://localhost:8080/wp-login.php && exit 0
             sleep 5
           done
-          echo " App did not become ready in time" >&2
+          echo "App did not become ready in time" >&2
           exit 1
 
       - name: Start Selenium Chrome
-        run: docker compose -f docker-compose.tests.yml up -d selenium-chrome
+        run: docker compose -f docker-compose.tests.yml up -d --quiet-pull selenium-chrome
 
       - name: Run Selenium tests
         run: docker compose -f docker-compose.tests.yml run --rm selenium-tests
