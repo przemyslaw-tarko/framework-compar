@@ -23,14 +23,15 @@ jobs:
             const repo = context.repo.repo;
             const headBranch = context.payload.workflow_run.head_branch;
             const baseBranch = 'main';
+            const allowed = ['app', fw-selenium];
 
             if (context.payload.workflow_run.event !== 'push') {
               core.info(`Skipping: workflow_run event is '${context.payload.workflow_run.event}'.`);
               return;
             }
 
-            if (headBranch !== 'app') {
-              core.info(`Skipping: head branch '${headBranch}' is not 'app'.`);
+            if (!allowed.includes(headBranch)) {
+              core.info(`Skipping: head branch '${headBranch}' not in ${allowed.join(', ')}`);
               return;
             }
 
