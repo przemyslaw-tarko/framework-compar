@@ -37,7 +37,7 @@ services:
   cypress-tests:
     container_name: cypress-tests
     image: cypress/included:13.17.0
-    entrypoint: ["bin/sh", "-lc"]
+    entrypoint: ["/bin/sh", "-lc"]
     working_dir: /work/tests/cypress
     environment:
       CYPRESS_BASE_URL: http://wordpress
