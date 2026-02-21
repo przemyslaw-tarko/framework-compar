@@ -32,7 +32,7 @@ services:
       - ./:/work
     networks:
       - wpsite
-    command: ["/bin/sh", "-lc", npm ci --no-audit --no-fund --loglevel=error && node tests/s_smoke.js"]
+    command: ["/bin/sh", "-lc", "npm ci --no-audit --no-fund --loglevel=error && node tests/s_smoke.js"]
 networks:
   wpsite:
     external: true
