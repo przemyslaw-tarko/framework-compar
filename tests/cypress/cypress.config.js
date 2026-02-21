@@ -4,6 +4,7 @@ module.exports = defineConfig({
     baseUrl: process.env.CYPRESS_BASE_URL || "http://wordpress",
     supportFile: false,
     specPattern: "e2e/**/*.cy.js",
+    allowCypressEnv: false,
   },
   reporter: "mocha-junit-reporter",
   reporterOptions: {
