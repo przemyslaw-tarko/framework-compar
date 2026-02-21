@@ -47,7 +47,7 @@ jobs:
           path: results/selenium/results.xml
           if-no-files-found: error
 
-      - name: eardown
+      - name: Teardown
         if: always()    
         run: |
           docker compose -f docker-compose.tests.yml down --remove-orphans || true
