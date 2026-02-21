@@ -4,14 +4,14 @@ on:
   push:
     paths:
       - 'app/**'
-      - 'tests/selenium/**'
-      - '.github/workflows/e2e-selenium.yml'
+      - 'tests/cypress/**'
+      - '.github/workflows/e2e-cypress.yml'
       - 'docker-compose.tests.yml'
   pull_request:
     paths:
       - 'app/**'
-      - 'tests/selenium/**'
-      - '.github/workflows/e2e-selenium.yml'
+      - 'tests/cypress/**'
+      - '.github/workflows/e2e-cypress.yml'
       - 'docker-compose.tests.yml'
   workflow_dispatch:
 
