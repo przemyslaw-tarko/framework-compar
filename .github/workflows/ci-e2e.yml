@@ -1,0 +1,158 @@
+name: CI + E2E
+
+on:
+  push:
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "docker-compose.tests.yml"
+      - ".github/workflows/ci-e2e.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "docker-compose.tests.yml"
+      - ".github/workflows/ci-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci-base:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULES_TOKEN }}
+
+      - name: CI placeholder
+        run: echo "CI is ready"
+
+  e2e-selenium:
+    needs: [ci-base]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULES_TOKEN }}
+
+      - name: Start app stack
+        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
+
+      - name: Wait for app
+        run: |
+          for i in {1..30}; do
+            curl -fsS -o /dev/null http://localhost:8080/wp-login.php && exit 0
+            sleep 5
+          done
+          echo "App did not become ready in time" >&2
+          exit 1
+
+      - name: Start Selenium Chrome
+        run: docker compose -f docker-compose.tests.yml up -d --quiet-pull selenium-chrome
+
+      - name: Run Selenium tests
+        run: docker compose -f docker-compose.tests.yml run --rm selenium-tests
+
+      - name: Upload Selenium result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-selenium-tests
+          path: results/selenium
+          if-no-files-found: error
+
+      - name: Teardown
+        if: always()
+        run: |
+          docker compose -f docker-compose.tests.yml down --remove-orphans || true
+          if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
+            docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
+          fi
+
+  e2e-cypress:
+    needs: [ci-base]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULES_TOKEN }}
+
+      - name: Start app stack
+        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
+
+      - name: Wait for app
+        run: |
+          for i in {1..30}; do
+            curl -fsS -o /dev/null http://localhost:8080/wp-login.php && exit 0
+            sleep 5
+          done
+          echo "App did not become ready in time" >&2
+          exit 1
+
+      - name: Run Cypress tests
+        run: docker compose -f docker-compose.tests.yml run --rm cypress-tests
+
+      - name: Upload Cypress result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-cypress-tests
+          path: results/cypress
+          if-no-files-found: error
+
+      - name: Teardown
+        if: always()
+        run: |
+          docker compose -f docker-compose.tests.yml down --remove-orphans || true
+          if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
+            docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
+          fi
+
+  e2e-playwright:
+    needs: [ci-base]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULES_TOKEN }}
+
+      - name: Start app stack
+        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
+
+      - name: Wait for app
+        run: |
+          for i in {1..30}; do
+            curl -fsS -o /dev/null http://localhost:8080/wp-login.php && exit 0
+            sleep 5
+          done
+          echo "App did not become ready in time" >&2
+          exit 1
+
+      - name: Run Playwright tests
+        run: docker compose -f docker-compose.tests.yml run --rm playwright-tests
+
+      - name: Upload Playwright result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-playwright-tests
+          path: results/playwright
+          if-no-files-found: error
+
+      - name: Teardown
+        if: always()
+        run: |
+          docker compose -f docker-compose.tests.yml down --remove-orphans || true
+          if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
+            docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
+          fi

@@ -1,57 +1,10 @@
-name: E2E Playwright
+name: E2E Playwright (deprecated)
 
 on:
-  push:
-    paths:
-      - 'app/**'
-      - 'tests/playwright/**'
-      - '.github/workflows/e2e-playwright.yml'
-      - 'docker-compose.tests.yml'
-  pull_request:
-    paths:
-      - 'app/**'
-      - 'tests/playwright/**'
-      - '.github/workflows/e2e-playwright.yml'
-      - 'docker-compose.tests.yml'
   workflow_dispatch:
 
 jobs:
-  e2e-playwright:
+  deprecated:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.SUBMODULES_TOKEN }}
-
-      - name: Start app stack
-        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
-
-      - name : Wait for app
-        run: |
-          for i in {1..30}; do
-            curl -fsS -o /dev/null http://localhost:8080/wp-login.php && exit 0
-            sleep 5
-          done
-          echo "App did not become ready in time" >&2
-          exit 1
-
-      - name: Run playwright tests
-        run: docker compose -f docker-compose.tests.yml run --rm playwright-tests 2>/dev/null
-
-      - name: Upload playwright result
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: result-playwright-tests
-          path: results/playwright
-          if-no-files-found: error
-
-      - name: Teardown
-        if: always()    
-        run: |
-          docker compose -f docker-compose.tests.yml down --remove-orphans || true
-          if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
-            docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
-          fi
+      - run: echo "Deprecated: use CI + E2E workflow"
