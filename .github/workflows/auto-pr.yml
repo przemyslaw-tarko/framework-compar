@@ -63,11 +63,13 @@ jobs:
             }
 
             core.setOutput('pr_number', String(pr.number));
+            core.setOutput('repo', `${owner}/${repo}`);
 
       - name: Enable auto-merge (retry)
         if: steps.create_pr.outputs.pr_number != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ steps.create_pr.outputs.repo }}
         run: |
           pr_number="${{ steps.create_pr.outputs.pr_number }}"
           for i in 1 2 3 4 5 6; do
