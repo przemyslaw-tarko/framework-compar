@@ -11,19 +11,20 @@ Testy są wykonywane na aplikacji **test‑bookstore** uruchamianej w osobnym ko
 
 ## Struktura repozytorium
 ```
-app/test-bookstore/          # submoduł z aplikacją testową
-Docker-compose.tests.yml      # kontenery testowe (selenium/cypress/playwright)
-.github/workflows/           # CI/CD i E2E
-results/                     # raporty testowe (gitignored)
-tests/selenium/              # testy Selenium
+app/test-bookstore/           # submoduł z aplikacją testową
+docker-compose.tests.yml      # kontenery testowe (selenium/cypress/playwright)
+.github/workflows/            # CI/CD
+results/                      # raporty testowe (gitignored)
+
+tests/selenium/               # testy Selenium
  tests/selenium/tests/*.js
  tests/selenium/package.json
 
-tests/cypress/               # testy Cypress
+tests/cypress/                # testy Cypress
  tests/cypress/e2e/*.cy.js
  tests/cypress/cypress.config.js
 
-tests/playwright/            # testy Playwright
+tests/playwright/             # testy Playwright
  tests/playwright/tests/*.spec.js
  tests/playwright/playwright.config.js
 ```
@@ -78,11 +79,15 @@ docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml do
 ```
 
 ## CI/CD – jak działa
-Workflowy w `.github/workflows/`:
-- **CI Base** – podstawowa walidacja dla zmian w `app/**` i `ci.yml`.
-- **E2E Selenium / Cypress / Playwright** – testy E2E dla zmian w odpowiednich katalogach i w `app/**`.
-- **Auto PR to main** – po sukcesie CI/E2E automatycznie tworzy PR i włącza auto‑merge.
-- **CD Base** – uruchamia się po merge do `main` przy zmianach w `app/**`.
+Workflow w `.github/workflows/ci-cd.yml`:
+- **build-app** – sprawdza, czy aplikacja testowa startuje.
+- **test-selenium** – uruchamia testy Selenium.
+- **test-cypress** – uruchamia testy Cypress.
+- **test-playwright** – uruchamia testy Playwright.
+- **auto-merge-to-main** – włącza auto‑merge PR do `main`, gdy wszystkie joby są zielone.
+
+Dodatkowo:
+- **CD Base** (`.github/workflows/cd.yml`) uruchamia się po merge do `main` przy zmianach w `app/**`.
 
 ### Wymagane sekrety
 Repozytorium używa prywatnego submodułu, więc w GitHub Secrets musi istnieć:
@@ -90,13 +95,22 @@ Repozytorium używa prywatnego submodułu, więc w GitHub Secrets musi istnieć:
 
 ### Ustawienia repo na GitHub
 W ustawieniach repo włącz:
-- **Allow auto‑merge** (żeby auto‑PR mógł się scalać),
-- **Squash merge** (zalecane dla czytelnej historii).
+- **Allow auto‑merge**
+- **Squash merge** (zalecane)
+- **Allow GitHub Actions to create and approve pull requests**
+- **Workflow permissions: Read and write**
 
 ## Zasady pracy z branchami
-- Każda zmiana w dowolnym branchu uruchamia odpowiednie E2E.
-- Po sukcesie workflowów tworzony jest PR do `main`.
+- Zmiany w branchu uruchamiają `CI/CD - App + Tests`.
+- Po sukcesie workflowu PR do `main` jest automatycznie mergowany.
 - Merge do `main` uruchamia CD.
 
 ## Raporty
 Raporty testów są generowane do katalogu `results/` (zignorowanego przez Git). W CI raporty są publikowane jako artifacty.
+
+---
+
+Jeśli chcesz rozszerzać projekt:
+- dodaj kolejne scenariusze testowe dla każdego frameworka,
+- dodaj metryki czasu startu i stabilności (powtarzane uruchomienia),
+- opisz różnice w konfiguracji i czytelności kodu testów.

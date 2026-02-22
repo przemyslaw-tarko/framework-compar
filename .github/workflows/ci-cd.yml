@@ -1,25 +1,27 @@
-name: CI + E2E
+name: CI/CD - App + Tests
 
 on:
   push:
+    branches: [main]
     paths:
       - "app/**"
       - "tests/**"
       - "docker-compose.tests.yml"
-      - ".github/workflows/ci-e2e.yml"
+      - ".github/workflows/ci-cd.yml"
   pull_request:
+    branches: [main]
     paths:
       - "app/**"
       - "tests/**"
       - "docker-compose.tests.yml"
-      - ".github/workflows/ci-e2e.yml"
+      - ".github/workflows/ci-cd.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  ci-base:
+  build-app:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,11 +30,27 @@ jobs:
           submodules: recursive
           token: ${{ secrets.SUBMODULES_TOKEN }}
 
-      - name: CI placeholder
-        run: echo "CI is ready"
+      - name: Build app container
+        run: |
+          docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml pull --quiet
 
-  e2e-selenium:
-    needs: [ci-base]
+      - name: Smoke check app
+        run: |
+          docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
+          for i in {1..30}; do
+            curl -fsS -o /dev/null http://localhost:8080/wp-login.php && exit 0
+            sleep 5
+          done
+          echo "App did not become ready in time" >&2
+          exit 1
+
+      - name: Teardown app
+        if: always()
+        run: |
+          docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
+
+  test-selenium:
+    needs: [build-app]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -75,8 +93,8 @@ jobs:
             docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
           fi
 
-  e2e-cypress:
-    needs: [ci-base]
+  test-cypress:
+    needs: [build-app]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -116,8 +134,8 @@ jobs:
             docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
           fi
 
-  e2e-playwright:
-    needs: [ci-base]
+  test-playwright:
+    needs: [build-app]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -156,3 +174,28 @@ jobs:
           if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
             docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
           fi
+
+  auto-merge-to-main:
+    needs: [build-app, test-selenium, test-cypress, test-playwright]
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if gh pr merge "$PR_NUMBER" --auto --squash; then
+              echo "Auto-merge enabled for PR #$PR_NUMBER"
+              exit 0
+            fi
+            echo "Auto-merge not enabled yet (attempt $i). Waiting..."
+            sleep $((i * 10))
+          done
+          echo "Failed to enable auto-merge after retries. Check branch protection and repo settings."
+          exit 0

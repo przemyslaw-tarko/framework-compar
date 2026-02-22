@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'app/**'
-      - '.github/workflows/cd.yml'
+      - "app/**"
+      - ".github/workflows/cd.yml"
   workflow_dispatch:
 
 jobs:
