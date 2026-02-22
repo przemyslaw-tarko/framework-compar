@@ -5,5 +5,5 @@ module.exports = defineConfig({
     use:{
         baseURL: process.env.BASE_URL || 'http://wordpress'
     },
-    report: [["junit", {outputFile: "/work/results/playwright/results.xml"}]]
+    reporter: [["junit", {outputFile: "/work/results/playwright/results.xml"}]]
 });
