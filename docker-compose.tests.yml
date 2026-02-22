@@ -17,6 +17,7 @@ services:
   selenium-tests:
     container_name: selenium-tests
     image: node:20-bookworm
+    entrypoint: ["/bin/sh", "-lc"]
     working_dir: /work/tests/selenium
     depends_on:
       selenium-chrome:
@@ -32,7 +33,7 @@ services:
       - ./:/work
     networks:
       - wpsite
-    command: ["/bin/sh", "-lc", "npm ci --no-audit --no-fund --loglevel=error --silent && node tests/s_smoke.js"]
+    command: ["npm ci --no-audit --no-fund --loglevel=error --silent && node tests/*.js"]
 
   cypress-tests:
     container_name: cypress-tests
@@ -53,6 +54,22 @@ services:
       - wpsite
     command: ["npm ci --no-audit --no-fund --loglevel=error --silent && npx cypress run --quiet"]
 
+  playwright-tests:
+    container_name: playwright-tests
+    image: mcr.microsoft.com/playwright:v1.58.2-jammy
+    entrypoint: ["/bin/sh", "-lc"]
+    working_dir: /work/tests/playwright
+    environment:
+      BASE_URL: http://wordpress
+      NPM_CONFIG_UPDATE_NOTIFIER: "false"
+      NPM_CONFIG_FUND: "false"
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_LOGLEVEL: "error"
+    volumes:
+      - ./:/work
+    networks:
+      - wpsite
+    command: ["npm ci --no-audit --no-fund --loglevel=error --silent && npx playwright test --quiet"]
 
 networks:
   wpsite:
