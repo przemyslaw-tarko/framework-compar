@@ -5,6 +5,10 @@ on:
     workflows: ["CI Base", "E2E Selenium", "E2E Cypress", "E2E Playwright"]
     types: [completed]
 
+concurrency:
+  group: auto-pr-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write

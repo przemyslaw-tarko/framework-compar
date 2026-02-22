@@ -2,7 +2,6 @@ name: CI Base
 
 on:
   push:
-    branches: [app, main]
     paths:
       - 'app/**'
       - '.github/workflows/ci.yml'

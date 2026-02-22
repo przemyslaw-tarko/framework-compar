@@ -33,7 +33,10 @@ services:
       - ./:/work
     networks:
       - wpsite
-    command: ["npm ci --no-audit --no-fund --loglevel=error --silent && node tests/*.js"]
+    command:
+      [
+        "npm ci --no-audit --no-fund --loglevel=error --silent && mkdir -p /work/results/selenium && for f in tests/*.js; do REPORT_PATH=/work/results/selenium/$(basename \"$f\" .js).xml node \"$f\"; done"
+      ]
 
   cypress-tests:
     container_name: cypress-tests
@@ -52,7 +55,10 @@ services:
       - ./:/work
     networks:
       - wpsite
-    command: ["npm ci --no-audit --no-fund --loglevel=error --silent && npx cypress run --quiet"]
+    command:
+      [
+        "npm ci --no-audit --no-fund --loglevel=error --silent && mkdir -p /work/results/cypress && npx cypress run --quiet"
+      ]
 
   playwright-tests:
     container_name: playwright-tests
@@ -69,7 +75,10 @@ services:
       - ./:/work
     networks:
       - wpsite
-    command: ["npm ci --no-audit --no-fund --loglevel=error --silent && npx playwright test --quiet"]
+    command:
+      [
+        "npm ci --no-audit --no-fund --loglevel=error --silent && mkdir -p /work/results/playwright && npx playwright test --quiet"
+      ]
 
 networks:
   wpsite:

@@ -45,7 +45,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: result-cypress-tests
-          path: results/cypress/results.xml
+          path: results/cypress
           if-no-files-found: error
 
       - name: Teardown

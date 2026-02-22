@@ -6,7 +6,7 @@ import junit from 'junit-report-builder';
 
 const BASE_URL = process.env.BASE_URL || 'http://wordpress';
 const SELENIUM_REMOTE_URL = process.env.SELENIUM_REMOTE_URL || 'http://localhost:4444/wd/hub';
-const REPOPR_PATH = '/work/results/selenium/results.xml';
+const REPORT_PATH = process.env.REPORT_PATH || '/work/results/selenium/results.xml';
 
 async function runSmokeTest(){
     const options = new chrome.Options();
@@ -23,7 +23,7 @@ async function runSmokeTest(){
         .name('selenium-smoke-test')
         .testCase()
         .className('selenium')
-        .name('title contains "Test App');
+        .name('title contains "Test App"');
 
     const start = Date.now();
 
@@ -38,11 +38,11 @@ async function runSmokeTest(){
     } catch (error) {
         testCase.failure(error.message || String(error));
         testCase.time((Date.now() - start) / 1000);
-        throw err;
+        throw error;
     } finally{
         await driver.quit();
-        fs.mkdirSync(path.dirname(REPOPR_PATH), { recursive: true });
-        junit.writeTo(REPOPR_PATH);
+        fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
+        junit.writeTo(REPORT_PATH);
     }
 }
 
