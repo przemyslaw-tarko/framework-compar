@@ -16,17 +16,17 @@ docker-compose.tests.yml      # kontenery testowe (selenium/cypress/playwright)
 .github/workflows/            # CI/CD
 results/                      # raporty testowe (gitignored)
 
-tests/selenium/               # testy Selenium
- tests/selenium/tests/*.js
- tests/selenium/package.json
+selenium/                     # testy Selenium
+ selenium/tests/*.js
+ selenium/package.json
 
-tests/cypress/                # testy Cypress
- tests/cypress/e2e/*.cy.js
- tests/cypress/cypress.config.js
+cypress/                      # testy Cypress
+ cypress/e2e/*.cy.js
+ cypress/cypress.config.js
 
-tests/playwright/             # testy Playwright
- tests/playwright/tests/*.spec.js
- tests/playwright/playwright.config.js
+playwright/                   # testy Playwright
+ playwright/tests/*.spec.js
+ playwright/playwright.config.js
 ```
 
 ## Wymagania lokalne
@@ -85,9 +85,6 @@ Workflow w `.github/workflows/ci-cd.yml`:
 - **test-cypress** – uruchamia testy Cypress.
 - **test-playwright** – uruchamia testy Playwright.
 - **auto-merge-to-main** – włącza auto‑merge PR do `main`, gdy wszystkie joby są zielone.
-
-Dodatkowo:
-- **CD Base** (`.github/workflows/cd.yml`) uruchamia się po merge do `main` przy zmianach w `app/**`.
 
 ### Wymagane sekrety
 Repozytorium używa prywatnego submodułu, więc w GitHub Secrets musi istnieć:

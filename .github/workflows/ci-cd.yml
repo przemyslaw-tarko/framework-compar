@@ -5,14 +5,18 @@ on:
     branches: [main]
     paths:
       - "app/**"
-      - "tests/**"
+      - "selenium/**"
+      - "cypress/**"
+      - "playwright/**"
       - "docker-compose.tests.yml"
       - ".github/workflows/ci-cd.yml"
   pull_request:
     branches: [main]
     paths:
       - "app/**"
-      - "tests/**"
+      - "selenium/**"
+      - "cypress/**"
+      - "playwright/**"
       - "docker-compose.tests.yml"
       - ".github/workflows/ci-cd.yml"
   workflow_dispatch:
