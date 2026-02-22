@@ -25,7 +25,49 @@ permissions:
   contents: read
 
 jobs:
+  changes-detect:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      selenium: ${{ steps.filter.outputs.selenium }}
+      cypress: ${{ steps.filter.outputs.cypress }}
+      playwright: ${{ steps.filter.outputs.playwright }}
+      compose: ${{ steps.filter.outputs.compose }}
+      workflow: ${{ steps.filter.outputs.workflow }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULES_TOKEN }}
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            app:
+              - 'app/**'
+            selenium:
+              - 'selenium/**'
+            cypress:
+              - 'cypress/**'
+            playwright:
+              - 'playwright/**'
+            compose:
+              - 'docker-compose.tests.yml'
+            workflow:
+              - '.github/workflows/ci-cd.yml'
+
   build-app:
+    needs: [changes-detect]
+    if: |
+      needs.changes-detect.outputs.app == 'true' ||
+      needs.changes-detect.outputs.selenium == 'true' ||
+      needs.changes-detect.outputs.cypress == 'true' ||
+      needs.changes-detect.outputs.playwright == 'true' ||
+      needs.changes-detect.outputs.compose == 'true' ||
+      needs.changes-detect.outputs.workflow == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -54,7 +96,11 @@ jobs:
           docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
 
   test-selenium:
-    needs: [build-app]
+    needs: [changes-detect, build-app]
+    if: |
+      needs.changes-detect.outputs.selenium == 'true' ||
+      needs.changes-detect.outputs.compose == 'true' ||
+      needs.changes-detect.outputs.workflow == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -98,7 +144,11 @@ jobs:
           fi
 
   test-cypress:
-    needs: [build-app]
+    needs: [changes-detect, build-app]
+    if: |
+      needs.changes-detect.outputs.cypress == 'true' ||
+      needs.changes-detect.outputs.compose == 'true' ||
+      needs.changes-detect.outputs.workflow == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -139,7 +189,11 @@ jobs:
           fi
 
   test-playwright:
-    needs: [build-app]
+    needs: [changes-detect, build-app]
+    if: |
+      needs.changes-detect.outputs.playwright == 'true' ||
+      needs.changes-detect.outputs.compose == 'true' ||
+      needs.changes-detect.outputs.workflow == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -179,27 +233,83 @@ jobs:
             docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
           fi
 
+  ci-summary:
+    needs:
+      - changes-detect
+      - build-app
+      - test-selenium
+      - test-cypress
+      - test-playwright
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate required jobs
+        env:
+          APP_CHANGED: ${{ needs.changes-detect.outputs.app }}
+          SELENIUM_CHANGED: ${{ needs.changes-detect.outputs.selenium }}
+          CYPRESS_CHANGED: ${{ needs.changes-detect.outputs.cypress }}
+          PLAYWRIGHT_CHANGED: ${{ needs.changes-detect.outputs.playwright }}
+          COMPOSE_CHANGED: ${{ needs.changes-detect.outputs.compose }}
+          WORKFLOW_CHANGED: ${{ needs.changes-detect.outputs.workflow }}
+          BUILD_APP_RESULT: ${{ needs.build-app.result }}
+          SELENIUM_RESULT: ${{ needs.test-selenium.result }}
+          CYPRESS_RESULT: ${{ needs.test-cypress.result }}
+          PLAYWRIGHT_RESULT: ${{ needs.test-playwright.result }}
+        run: |
+          set -euo pipefail
+
+          require_build_app=false
+          require_selenium=false
+          require_cypress=false
+          require_playwright=false
+
+          if [[ "$APP_CHANGED" == "true" || "$SELENIUM_CHANGED" == "true" || "$CYPRESS_CHANGED" == "true" || "$PLAYWRIGHT_CHANGED" == "true" || "$COMPOSE_CHANGED" == "true" || "$WORKFLOW_CHANGED" == "true" ]]; then
+            require_build_app=true
+          fi
+
+          if [[ "$SELENIUM_CHANGED" == "true" || "$COMPOSE_CHANGED" == "true" || "$WORKFLOW_CHANGED" == "true" ]]; then
+            require_selenium=true
+          fi
+
+          if [[ "$CYPRESS_CHANGED" == "true" || "$COMPOSE_CHANGED" == "true" || "$WORKFLOW_CHANGED" == "true" ]]; then
+            require_cypress=true
+          fi
+
+          if [[ "$PLAYWRIGHT_CHANGED" == "true" || "$COMPOSE_CHANGED" == "true" || "$WORKFLOW_CHANGED" == "true" ]]; then
+            require_playwright=true
+          fi
+
+          fail=0
+          if [[ "$require_build_app" == "true" && "$BUILD_APP_RESULT" != "success" ]]; then
+            echo "Required job build-app did not succeed (result: $BUILD_APP_RESULT)"
+            fail=1
+          fi
+          if [[ "$require_selenium" == "true" && "$SELENIUM_RESULT" != "success" ]]; then
+            echo "Required job test-selenium did not succeed (result: $SELENIUM_RESULT)"
+            fail=1
+          fi
+          if [[ "$require_cypress" == "true" && "$CYPRESS_RESULT" != "success" ]]; then
+            echo "Required job test-cypress did not succeed (result: $CYPRESS_RESULT)"
+            fail=1
+          fi
+          if [[ "$require_playwright" == "true" && "$PLAYWRIGHT_RESULT" != "success" ]]; then
+            echo "Required job test-playwright did not succeed (result: $PLAYWRIGHT_RESULT)"
+            fail=1
+          fi
+
+          exit $fail
+
   auto-merge-to-main:
-    needs: [build-app, test-selenium, test-cypress, test-playwright]
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    needs: [ci-summary]
+    if: github.event_name == 'pull_request' && github.base_ref == 'main' && needs.ci-summary.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     steps:
       - name: Enable auto-merge
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          for i in 1 2 3 4 5 6; do
-            if gh pr merge "$PR_NUMBER" --auto --squash; then
-              echo "Auto-merge enabled for PR #$PR_NUMBER"
-              exit 0
-            fi
-            echo "Auto-merge not enabled yet (attempt $i). Waiting..."
-            sleep $((i * 10))
-          done
-          echo "Failed to enable auto-merge after retries. Check branch protection and repo settings."
-          exit 0
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash

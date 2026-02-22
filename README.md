@@ -84,7 +84,8 @@ Workflow w `.github/workflows/ci-cd.yml`:
 - **test-selenium** – uruchamia testy Selenium.
 - **test-cypress** – uruchamia testy Cypress.
 - **test-playwright** – uruchamia testy Playwright.
-- **auto-merge-to-main** – włącza auto‑merge PR do `main`, gdy wszystkie joby są zielone.
+- **ci-summary** – agreguje wynik tylko dla jobów, które powinny się uruchomić.
+- **auto-merge-to-main** – włącza auto‑merge PR do `main`, gdy wszystkie wymagane joby są zielone.
 
 ### Wymagane sekrety
 Repozytorium używa prywatnego submodułu, więc w GitHub Secrets musi istnieć:
@@ -100,14 +101,15 @@ W ustawieniach repo włącz:
 ## Zasady pracy z branchami
 - Zmiany w branchu uruchamiają `CI/CD - App + Tests`.
 - Po sukcesie workflowu PR do `main` jest automatycznie mergowany.
-- Merge do `main` uruchamia CD.
+
+## Warunkowe uruchamianie jobów
+- Zmiany tylko w `selenium/**` uruchamiają `test-selenium`.
+- Zmiany tylko w `cypress/**` uruchamiają `test-cypress`.
+- Zmiany tylko w `playwright/**` uruchamiają `test-playwright`.
+- Zmiany tylko w `app/**` uruchamiają wyłącznie `build-app`.
+- Zmiany w `docker-compose.tests.yml` lub w `.github/workflows/ci-cd.yml` uruchamiają wszystkie testy.
+
+W ruleset/branch protection jako wymagany status check ustaw `ci-summary` (to jedyny check, który zawsze jest poprawnie oceniany przy warunkowych jobach).
 
 ## Raporty
 Raporty testów są generowane do katalogu `results/` (zignorowanego przez Git). W CI raporty są publikowane jako artifacty.
-
----
-
-Jeśli chcesz rozszerzać projekt:
-- dodaj kolejne scenariusze testowe dla każdego frameworka,
-- dodaj metryki czasu startu i stabilności (powtarzane uruchomienia),
-- opisz różnice w konfiguracji i czytelności kodu testów.
