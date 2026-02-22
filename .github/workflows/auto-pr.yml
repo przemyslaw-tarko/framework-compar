@@ -64,10 +64,19 @@ jobs:
 
             core.setOutput('pr_number', String(pr.number));
 
-      - name: Enable auto-merge
+      - name: Enable auto-merge (retry)
         if: steps.create_pr.outputs.pr_number != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr merge ${{ steps.create_pr.outputs.pr_number }} --auto --squash || \
-            echo "Failed to enable auto-merge, it might already be enabled or there might be merge conflicts."
+          pr_number="${{ steps.create_pr.outputs.pr_number }}"
+          for i in 1 2 3 4 5 6; do
+            if gh pr merge "$pr_number" --auto --squash; then
+              echo "Auto-merge enabled for PR #$pr_number"
+              exit 0
+            fi
+            echo "Auto-merge not enabled yet (attempt $i). Waiting..."
+            sleep $((i * 10))
+          done
+          echo "Failed to enable auto-merge after retries. Check branch protection and repo settings."
+          exit 0
