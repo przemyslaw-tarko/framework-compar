@@ -18,7 +18,7 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Create or update PR and enable auto-merge
+      - name: Create or update PR
         id: create_pr
         uses: actions/github-script@v7
         with:
@@ -64,19 +64,37 @@ jobs:
 
             core.setOutput('pr_number', String(pr.number));
 
-      - name: Enable auto-merge (retry)
+      - name: Enable auto-merge (GraphQL)
         if: steps.create_pr.outputs.pr_number != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          pr_number="${{ steps.create_pr.outputs.pr_number }}"
-          for i in 1 2 3 4 5 6; do
-            if gh pr merge "$pr_number" --auto --squash; then
-              echo "Auto-merge enabled for PR #$pr_number"
-              exit 0
-            fi
-            echo "Auto-merge not enabled yet (attempt $i). Waiting..."
-            sleep $((i * 10))
-          done
-          echo "Failed to enable auto-merge after retries. Check branch protection and repo settings."
-          exit 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = Number("${{ steps.create_pr.outputs.pr_number }}");
+
+            const { data } = await github.graphql(
+              `query($owner:String!, $repo:String!, $number:Int!) {
+                 repository(owner:$owner, name:$repo) {
+                   pullRequest(number:$number) {
+                     id
+                     mergeStateStatus
+                   }
+                 }
+               }`,
+              { owner, repo, number: prNumber }
+            );
+
+            const prId = data.repository.pullRequest.id;
+            core.info(`PR mergeStateStatus: ${data.repository.pullRequest.mergeStateStatus}`);
+
+            await github.graphql(
+              `mutation($pullRequestId:ID!) {
+                 enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: SQUASH }) {
+                   pullRequest { number autoMergeRequest { enabledAt } }
+                 }
+               }`,
+              { pullRequestId: prId }
+            );
+
+            core.info(`Auto-merge enabled via GraphQL for PR #${prNumber}`);
