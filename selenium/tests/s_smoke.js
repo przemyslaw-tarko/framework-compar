@@ -47,4 +47,4 @@ async function runSmokeTest(){
 }
 
 runSmokeTest().catch(() => process.exit(1));
-// zmiana testowa nr 3
+// oby to kurwa zadziałalo
