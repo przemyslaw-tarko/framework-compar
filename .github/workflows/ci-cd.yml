@@ -57,7 +57,7 @@ jobs:
             compose:
               - 'docker-compose.tests.yml'
             workflow:
-              - '.github/workflows/ci-cd.yml'
+              - '.github/workflows/**'
 
   build-app:
     needs: [changes-detect]
