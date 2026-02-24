@@ -47,4 +47,4 @@ async function runSmokeTest(){
 }
 
 runSmokeTest().catch(() => process.exit(1));
-// oby to kurwa zadziałalo
+// oby to kurwa poszło
