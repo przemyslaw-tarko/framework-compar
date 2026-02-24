@@ -9,7 +9,7 @@ on:
       - "cypress/**"
       - "playwright/**"
       - "docker-compose.tests.yml"
-      - ".github/workflows/ci-cd.yml"
+      - ".github/workflows/**"
   pull_request:
     branches: [main]
     paths:
@@ -18,7 +18,7 @@ on:
       - "cypress/**"
       - "playwright/**"
       - "docker-compose.tests.yml"
-      - ".github/workflows/ci-cd.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
