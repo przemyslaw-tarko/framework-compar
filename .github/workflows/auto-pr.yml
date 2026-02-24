@@ -1,0 +1,44 @@
+name: Auto PR - Feature to main
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "app/**"
+      - "selenium/**"
+      - "cypress/**"
+      - "playwright/**"
+      - "docker-compose.tests.yml"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create PR if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_BRANCH: main
+        run: |
+          set -euo pipefail
+          branch="${GITHUB_REF_NAME}"
+          if [[ "$branch" == "$BASE_BRANCH" ]]; then
+            exit 0
+          fi
+
+          existing="$(gh pr list --head "$branch" --base "$BASE_BRANCH" --state open --json number -q 'length')"
+          if [[ "$existing" == "0" ]]; then
+            gh pr create \
+              --base "$BASE_BRANCH" \
+              --head "$branch" \
+              --title "$branch" \
+              --body "Auto-created PR for branch \`$branch\`."
+          else
+            echo "PR already exists for $branch"
+          fi
