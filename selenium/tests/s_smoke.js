@@ -47,4 +47,4 @@ async function runSmokeTest(){
 }
 
 runSmokeTest().catch(() => process.exit(1));
-// test zmian w pliku testowym
+// zmiana testowa
