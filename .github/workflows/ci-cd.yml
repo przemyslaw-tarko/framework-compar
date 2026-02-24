@@ -12,13 +12,6 @@ on:
       - ".github/workflows/**"
   pull_request:
     branches: [main]
-    paths:
-      - "app/**"
-      - "selenium/**"
-      - "cypress/**"
-      - "playwright/**"
-      - "docker-compose.tests.yml"
-      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
