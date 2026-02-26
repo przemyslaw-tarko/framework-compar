@@ -1,7 +1,6 @@
 services:
   selenium-chrome:
-    container_name: selenium-chrome
-    image: selenium/standalone-chrome:latest
+    image: selenium/standalone-chrome:4.16.1
     shm_size: "2gb"
     ports:
       - "4444:4444"
@@ -15,7 +14,6 @@ services:
       start_period: 30s
 
   selenium-tests:
-    container_name: selenium-tests
     image: selenium-tests:latest
     build:
       context: .
@@ -42,7 +40,6 @@ services:
       ]
 
   cypress-tests:
-    container_name: cypress-tests
     image: cypress-tests:latest
     build:
       context: .
@@ -67,7 +64,6 @@ services:
       ]
 
   playwright-tests:
-    container_name: playwright-tests
     image: playwright-tests:latest
     build:
       context: .
@@ -90,6 +86,4 @@ services:
       ]
 
 networks:
-  wpsite:
-    external: true
-    name: docker-test-bookstore_wpsite
+  wpsite: {}

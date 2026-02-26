@@ -1,7 +1,7 @@
 name: CI/CD - App + Tests
 
 on:
-  push:
+  pull_request:
     branches: [main]
     paths:
       - "app/**"
@@ -10,12 +10,18 @@ on:
       - "playwright/**"
       - "docker-compose.tests.yml"
       - ".github/workflows/**"
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-cd-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_COMPOSE_FILE: app/test-bookstore/docker-test-bookstore/docker-compose.yml
+  TEST_COMPOSE_FILE: docker-compose.tests.yml
 
 jobs:
   changes-detect:
@@ -52,6 +58,29 @@ jobs:
             workflow:
               - '.github/workflows/**'
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULES_TOKEN }}
+
+      - name: Lint workflows
+        uses: rhysd/actionlint@v1
+
+      - name: Lint YAML files
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: |
+            .github/workflows
+            docker-compose.tests.yml
+            app/test-bookstore/docker-test-bookstore/docker-compose.yml
+
+      - name: Validate docker compose
+        run: docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" config > /dev/null
+
   build-app:
     needs: [changes-detect]
     if: |
@@ -71,11 +100,11 @@ jobs:
 
       - name: Build app container
         run: |
-          docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml pull --quiet
+          docker compose -f "$APP_COMPOSE_FILE" pull --quiet
 
       - name: Smoke check app
         run: |
-          docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
+          docker compose -f "$APP_COMPOSE_FILE" up -d --quiet-pull
           for i in {1..30}; do
             curl -fsS -o /dev/null http://localhost:8080/wp-login.php && exit 0
             sleep 5
@@ -86,7 +115,7 @@ jobs:
       - name: Teardown app
         if: always()
         run: |
-          docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
+          docker compose -f "$APP_COMPOSE_FILE" down --remove-orphans || true
 
   test-selenium:
     needs: [changes-detect, build-app]
@@ -103,7 +132,7 @@ jobs:
           token: ${{ secrets.SUBMODULES_TOKEN }}
 
       - name: Start app stack
-        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
+        run: docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" up -d --quiet-pull wordpress
 
       - name: Wait for app
         run: |
@@ -115,10 +144,10 @@ jobs:
           exit 1
 
       - name: Start Selenium Chrome
-        run: docker compose -f docker-compose.tests.yml up -d --quiet-pull selenium-chrome
+        run: docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" up -d --quiet-pull selenium-chrome
 
       - name: Run Selenium tests
-        run: docker compose -f docker-compose.tests.yml run --rm selenium-tests
+        run: docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" run --rm selenium-tests
 
       - name: Upload Selenium result
         if: always()
@@ -131,10 +160,7 @@ jobs:
       - name: Teardown
         if: always()
         run: |
-          docker compose -f docker-compose.tests.yml down --remove-orphans || true
-          if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
-            docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
-          fi
+          docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" down --remove-orphans || true
 
   test-cypress:
     needs: [changes-detect, build-app]
@@ -151,7 +177,7 @@ jobs:
           token: ${{ secrets.SUBMODULES_TOKEN }}
 
       - name: Start app stack
-        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
+        run: docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" up -d --quiet-pull wordpress
 
       - name: Wait for app
         run: |
@@ -163,7 +189,7 @@ jobs:
           exit 1
 
       - name: Run Cypress tests
-        run: docker compose -f docker-compose.tests.yml run --rm cypress-tests
+        run: docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" run --rm cypress-tests
 
       - name: Upload Cypress result
         if: always()
@@ -176,10 +202,7 @@ jobs:
       - name: Teardown
         if: always()
         run: |
-          docker compose -f docker-compose.tests.yml down --remove-orphans || true
-          if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
-            docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
-          fi
+          docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" down --remove-orphans || true
 
   test-playwright:
     needs: [changes-detect, build-app]
@@ -196,7 +219,7 @@ jobs:
           token: ${{ secrets.SUBMODULES_TOKEN }}
 
       - name: Start app stack
-        run: docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d --quiet-pull
+        run: docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" up -d --quiet-pull wordpress
 
       - name: Wait for app
         run: |
@@ -208,7 +231,7 @@ jobs:
           exit 1
 
       - name: Run Playwright tests
-        run: docker compose -f docker-compose.tests.yml run --rm playwright-tests
+        run: docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" run --rm playwright-tests
 
       - name: Upload Playwright result
         if: always()
@@ -221,14 +244,12 @@ jobs:
       - name: Teardown
         if: always()
         run: |
-          docker compose -f docker-compose.tests.yml down --remove-orphans || true
-          if [ -f app/test-bookstore/docker-test-bookstore/docker-compose.yml ]; then
-            docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans || true
-          fi
+          docker compose -f "$APP_COMPOSE_FILE" -f "$TEST_COMPOSE_FILE" down --remove-orphans || true
 
   ci-summary:
     needs:
       - changes-detect
+      - lint
       - build-app
       - test-selenium
       - test-cypress
@@ -244,6 +265,7 @@ jobs:
           PLAYWRIGHT_CHANGED: ${{ needs.changes-detect.outputs.playwright }}
           COMPOSE_CHANGED: ${{ needs.changes-detect.outputs.compose }}
           WORKFLOW_CHANGED: ${{ needs.changes-detect.outputs.workflow }}
+          LINT_RESULT: ${{ needs.lint.result }}
           BUILD_APP_RESULT: ${{ needs.build-app.result }}
           SELENIUM_RESULT: ${{ needs.test-selenium.result }}
           CYPRESS_RESULT: ${{ needs.test-cypress.result }}
@@ -255,6 +277,7 @@ jobs:
           require_selenium=false
           require_cypress=false
           require_playwright=false
+          require_lint=true
 
           if [[ "$APP_CHANGED" == "true" || "$SELENIUM_CHANGED" == "true" || "$CYPRESS_CHANGED" == "true" || "$PLAYWRIGHT_CHANGED" == "true" || "$COMPOSE_CHANGED" == "true" || "$WORKFLOW_CHANGED" == "true" ]]; then
             require_build_app=true
@@ -273,6 +296,10 @@ jobs:
           fi
 
           fail=0
+          if [[ "$require_lint" == "true" && "$LINT_RESULT" != "success" ]]; then
+            echo "Required job lint did not succeed (result: $LINT_RESULT)"
+            fail=1
+          fi
           if [[ "$require_build_app" == "true" && "$BUILD_APP_RESULT" != "success" ]]; then
             echo "Required job build-app did not succeed (result: $BUILD_APP_RESULT)"
             fail=1

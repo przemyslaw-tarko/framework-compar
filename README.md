@@ -38,6 +38,7 @@ Aplikacja testowa jest submodułem (`app/test-bookstore`). Po klonowaniu repozyt
 ```
 git submodule update --init --recursive
 ```
+Jeśli submoduł jest prywatny, potrzebujesz tokena dostępowego tylko do odczytu (PAT) i ustawienia sekretu `SUBMODULES_TOKEN` w GitHub. Jeśli submoduł jest publiczny, token nie jest wymagany.
 
 ## Uruchomienie aplikacji testowej (lokalnie)
 ```
@@ -53,33 +54,38 @@ Wszystkie testy uruchamiają się w kontenerach i zapisują raporty XML do `resu
 
 ### Selenium
 ```
-docker compose -f docker-compose.tests.yml up -d selenium-chrome
+docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml up -d wordpress
 
-docker compose -f docker-compose.tests.yml run --rm selenium-tests
+docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml up -d selenium-chrome
+
+docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml run --rm selenium-tests
 ```
 Raporty: `results/selenium/*.xml`
 
 ### Cypress
 ```
-docker compose -f docker-compose.tests.yml run --rm cypress-tests
+docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml up -d wordpress
+
+docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml run --rm cypress-tests
 ```
 Raport: `results/cypress/results.xml`
 
 ### Playwright
 ```
-docker compose -f docker-compose.tests.yml run --rm playwright-tests
+docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml up -d wordpress
+
+docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml run --rm playwright-tests
 ```
 Raport: `results/playwright/results.xml`
 
 ### Sprzątanie
 ```
-docker compose -f docker-compose.tests.yml down --remove-orphans
-
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml down --remove-orphans
+docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml down --remove-orphans
 ```
 
 ## CI/CD – jak działa
 Workflow w `.github/workflows/ci-cd.yml`:
+- **lint** – waliduje YAML i konfigurację Docker Compose.
 - **build-app** – sprawdza, czy aplikacja testowa startuje.
 - **test-selenium** – uruchamia testy Selenium.
 - **test-cypress** – uruchamia testy Cypress.
