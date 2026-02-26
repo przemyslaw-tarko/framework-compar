@@ -48,3 +48,4 @@ async function runSmokeTest(){
 
 runSmokeTest().catch(() => process.exit(1));
 // oby to kurwa poszło
+// push do branch future
