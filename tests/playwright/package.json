@@ -1,0 +1,12 @@
+{
+  "name": "bookstore-playwright-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@bookstore/shared": "1.0.0",
+    "@playwright/test": "1.58.2"
+  }
+}

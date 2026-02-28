@@ -1,0 +1,34 @@
+{
+  "name": "bookstore-test-automation",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "npm@10.2.4",
+  "workspaces": [
+    "tests/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "env:up": "node scripts/compose.js app up -d",
+    "env:down": "node scripts/compose.js app down --remove-orphans",
+    "env:reset": "node scripts/compose.js app down -v --remove-orphans",
+    "env:wait": "node scripts/wait-for-app.js",
+    "test:selenium": "node scripts/compose.js all run --rm selenium-tests",
+    "test:cypress": "node scripts/compose.js all run --rm cypress-tests",
+    "test:playwright": "node scripts/compose.js all run --rm playwright-tests",
+    "test:all": "node scripts/run-all.js",
+    "compose:app:up": "node scripts/compose.js app up -d",
+    "compose:app:down": "node scripts/compose.js app down --remove-orphans",
+    "compose:tests:up": "node scripts/compose.js all up -d selenium-chrome",
+    "compose:tests:down": "node scripts/compose.js all down --remove-orphans",
+    "compose:status": "node scripts/compose.js all ps",
+    "lint": "eslint . --ext .js --max-warnings=0",
+    "format:check": "prettier --check .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "dotenv": "16.4.5",
+    "eslint": "8.57.0",
+    "eslint-config-prettier": "9.1.0",
+    "prettier": "3.2.5"
+  }
+}

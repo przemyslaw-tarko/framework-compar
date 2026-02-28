@@ -1,121 +1,124 @@
-# Porównanie Selenium, Cypress i Playwright (Docker + CI/CD)
+# Bookstore E2E Automation (Selenium + Cypress + Playwright)
 
-## Cel projektu
-Porównanie trzech frameworków E2E (Selenium, Cypress, Playwright) pod kątem:
-- łatwości konfiguracji i pisania testów w JavaScript,
-- stabilności uruchomień,
-- integracji z CI/CD,
-- generowania raportów testowych.
+Kompletny projekt automatyzacji testów aplikacji webowej **Bookstore** (WordPress + WooCommerce) w Dockerze, z porównaniem trzech frameworków: **Selenium WebDriver**, **Cypress** i **Playwright**.
 
-Testy są wykonywane na aplikacji **test‑bookstore** uruchamianej w osobnym kontenerze. Każdy framework działa w osobnym kontenerze, aby izolować środowiska.
+## Założenia
+- Jednolite scenariusze E2E we wszystkich frameworkach.
+- Powtarzalne środowisko w Dockerze.
+- Raporty HTML + JUnit w `reports/`.
+- Integracja z TestRail przez zmienne środowiskowe (bez sekretów w repo).
+- CI/CD w GitHub Actions z auto‑merge po przejściu wymaganych checków.
 
-## Struktura repozytorium
+## Architektura repo
 ```
-app/test-bookstore/           # submoduł z aplikacją testową
-docker-compose.tests.yml      # kontenery testowe (selenium/cypress/playwright)
-.github/workflows/            # CI/CD
-results/                      # raporty testowe (gitignored)
-
-selenium/                     # testy Selenium
- selenium/tests/*.js
- selenium/package.json
-
-cypress/                      # testy Cypress
- cypress/e2e/*.cy.js
- cypress/cypress.config.js
-
-playwright/                   # testy Playwright
- playwright/tests/*.spec.js
- playwright/playwright.config.js
+apps/bookstore/            # docker-compose dla aplikacji
+apps/test-bookstore/       # submodule: źródła aplikacji testowej
+packages/shared/           # wspólne helpery (config, selectors, TestRail)
+tests/selenium/            # Selenium + Mocha
+/tests/cypress/            # Cypress
+/tests/playwright/         # Playwright Test
+reports/                   # generowane raporty (gitignored)
+.github/workflows/ci.yml   # pipeline CI
 ```
 
-## Wymagania lokalne
+## Wymagania
 - Docker + Docker Compose
-- Git
+- Node.js 20 LTS
 
-## Submoduł aplikacji
-Aplikacja testowa jest submodułem (`app/test-bookstore`). Po klonowaniu repozytorium:
+## Szybki start (3 komendy)
+```
+cp .env.example .env
+npm install
+npm run env:up
+```
+
+Jeśli klonujesz repo po raz pierwszy:
 ```
 git submodule update --init --recursive
 ```
-Jeśli submoduł jest prywatny, potrzebujesz tokena dostępowego tylko do odczytu (PAT) i ustawienia sekretu `SUBMODULES_TOKEN` w GitHub. Jeśli submoduł jest publiczny, token nie jest wymagany.
 
-## Uruchomienie aplikacji testowej (lokalnie)
+Czekanie na gotowość aplikacji:
 ```
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml up -d
-```
-Aplikacja powinna być dostępna pod:
-```
-http://localhost:8080/wp-login.php
+npm run env:wait
 ```
 
-## Uruchomienie testów lokalnie
-Wszystkie testy uruchamiają się w kontenerach i zapisują raporty XML do `results/<framework>`.
-
-### Selenium
+## Uruchamianie testów
+Wszystkie testy uruchamiają się **w kontenerach**:
 ```
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml up -d wordpress
-
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml up -d selenium-chrome
-
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml run --rm selenium-tests
+npm run test:selenium
+npm run test:cypress
+npm run test:playwright
+npm run test:all
 ```
-Raporty: `results/selenium/*.xml`
-
-### Cypress
-```
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml up -d wordpress
-
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml run --rm cypress-tests
-```
-Raport: `results/cypress/results.xml`
-
-### Playwright
-```
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml up -d wordpress
-
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml run --rm playwright-tests
-```
-Raport: `results/playwright/results.xml`
-
-### Sprzątanie
-```
-docker compose -f app/test-bookstore/docker-test-bookstore/docker-compose.yml -f docker-compose.tests.yml down --remove-orphans
-```
-
-## CI/CD – jak działa
-Workflow w `.github/workflows/ci-cd.yml`:
-- **lint** – waliduje YAML i konfigurację Docker Compose.
-- **build-app** – sprawdza, czy aplikacja testowa startuje.
-- **test-selenium** – uruchamia testy Selenium.
-- **test-cypress** – uruchamia testy Cypress.
-- **test-playwright** – uruchamia testy Playwright.
-- **ci-summary** – agreguje wynik tylko dla jobów, które powinny się uruchomić.
-- **auto-merge-to-main** – włącza auto‑merge PR do `main`, gdy wszystkie wymagane joby są zielone.
-
-### Wymagane sekrety
-Repozytorium używa prywatnego submodułu, więc w GitHub Secrets musi istnieć:
-- `SUBMODULES_TOKEN` – PAT z dostępem read do repozytorium `test-bookstore`.
-
-### Ustawienia repo na GitHub
-W ustawieniach repo włącz:
-- **Allow auto‑merge**
-- **Squash merge** (zalecane)
-- **Allow GitHub Actions to create and approve pull requests**
-- **Workflow permissions: Read and write**
-
-## Zasady pracy z branchami
-- Zmiany w branchu uruchamiają `CI/CD - App + Tests`.
-- Po sukcesie workflowu PR do `main` jest automatycznie mergowany.
-
-## Warunkowe uruchamianie jobów
-- Zmiany tylko w `selenium/**` uruchamiają `test-selenium`.
-- Zmiany tylko w `cypress/**` uruchamiają `test-cypress`.
-- Zmiany tylko w `playwright/**` uruchamiają `test-playwright`.
-- Zmiany tylko w `app/**` uruchamiają wyłącznie `build-app`.
-- Zmiany w `docker-compose.tests.yml` lub w `.github/workflows/ci-cd.yml` uruchamiają wszystkie testy.
-
-W ruleset/branch protection jako wymagany status check ustaw `ci-summary` (to jedyny check, który zawsze jest poprawnie oceniany przy warunkowych jobach).
 
 ## Raporty
-Raporty testów są generowane do katalogu `results/` (zignorowanego przez Git). W CI raporty są publikowane jako artifacty.
+Po każdym runie znajdziesz raporty w `reports/`:
+- `reports/selenium/` – Mochawesome HTML + JUnit
+- `reports/cypress/` – Mochawesome HTML + JUnit
+- `reports/playwright/` – HTML + JUnit
+- `reports/metrics/` – metryki czasu i wyników
+
+## TestRail
+Włącz publikację ustawiając w `.env`:
+```
+TESTRAIL_ENABLED=true
+TESTRAIL_URL=...
+TESTRAIL_USER=...
+TESTRAIL_API_KEY=...
+TESTRAIL_RUN_ID=...
+```
+Identyfikacja przypadków: w tytule testu używamy formatu `[C1234]`.
+
+## Selenium runner – dlaczego Mocha?
+Wybrany został **Mocha**, ponieważ:
+- jest dojrzały i stabilny,
+- ma bogaty ekosystem reporterów (JUnit + HTML),
+- pozwala na łatwy programatyczny pomiar metryk.
+
+## Docker i środowisko
+Start aplikacji:
+```
+npm run env:up
+```
+Domyślny `BASE_URL`: `http://localhost:8080`.
+
+Uwaga: runtime używa gotowych obrazów Docker (jak dotychczas). Submodule zawiera kod źródłowy aplikacji dla wglądu i wersjonowania po Twojej stronie.
+
+Szybkie komendy compose:
+```
+npm run compose:app:up
+npm run compose:app:down
+npm run compose:tests:up
+npm run compose:tests:down
+npm run compose:status
+```
+
+## CI/CD
+Workflow `.github/workflows/ci.yml` uruchamia:
+1. `lint` + format check
+2. start środowiska
+3. testy (niezależne joby per framework, uruchamiane tylko przy zmianach)
+4. upload artefaktów `reports/` (per framework)
+5. `ci-summary` jako jedyny wymagany check
+
+### Wymagane ustawienia repo
+W GitHub:
+- Allow auto‑merge
+- Allow GitHub Actions to create and approve pull requests
+- Workflow permissions: Read and write
+- Secrets: `SUBMODULES_TOKEN` z dostępem do submodułów
+
+Branch protection dla `main`:
+- Require a pull request before merging
+- Require status checks → tylko `ci-summary`
+- Require conversation resolution
+- Restrict who can push (opcjonalnie)
+
+## Znane problemy
+- Stripe w środowisku testowym wymaga aktywnej konfiguracji w aplikacji. Jeśli płatność Stripe nie jest dostępna, test checkout nadal przejdzie przez proces zamówienia, ale bez weryfikacji pól Stripe.
+
+## Checklist smoke
+1. `npm run env:up`
+2. `npm run env:wait`
+3. `npm run test:playwright`
+4. `ls reports/playwright/html`

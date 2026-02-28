@@ -1,9 +1,0 @@
-{
-    "name": "selenium-tests",
-    "private": true,
-    "type": "module",
-    "dependencies": {
-        "selenium-webdriver": "4.41.0",
-        "junit-report-builder": "5.1.1"
-    }
-}

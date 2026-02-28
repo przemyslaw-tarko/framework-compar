@@ -1,0 +1,15 @@
+{
+  "reporterEnabled": "spec, mocha-junit-reporter, mochawesome",
+  "mochaJunitReporterReporterOptions": {
+    "mochaFile": "reports/selenium/junit.xml",
+    "toConsole": false
+  },
+  "mochawesomeReporterOptions": {
+    "reportDir": "reports/selenium",
+    "reportFilename": "mochawesome",
+    "quiet": true,
+    "overwrite": true,
+    "html": true,
+    "json": true
+  }
+}

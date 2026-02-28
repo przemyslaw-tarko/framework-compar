@@ -1,3 +1,23 @@
+x-test-env: &test_env
+  BASE_URL: http://wordpress
+  TESTRAIL_ENABLED: ${TESTRAIL_ENABLED:-false}
+  TESTRAIL_URL: ${TESTRAIL_URL:-}
+  TESTRAIL_USER: ${TESTRAIL_USER:-}
+  TESTRAIL_API_KEY: ${TESTRAIL_API_KEY:-}
+  TESTRAIL_PROJECT_ID: ${TESTRAIL_PROJECT_ID:-}
+  TESTRAIL_RUN_ID: ${TESTRAIL_RUN_ID:-}
+  TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-TestPass123!}
+  TEST_USER_FIRSTNAME: ${TEST_USER_FIRSTNAME:-Jan}
+  TEST_USER_LASTNAME: ${TEST_USER_LASTNAME:-Kowalski}
+  TEST_USER_ADDRESS: ${TEST_USER_ADDRESS:-Testowa 1}
+  TEST_USER_CITY: ${TEST_USER_CITY:-Warszawa}
+  TEST_USER_POSTCODE: ${TEST_USER_POSTCODE:-00-001}
+  TEST_USER_PHONE: ${TEST_USER_PHONE:-500600700}
+  STRIPE_CARD_NUMBER: ${STRIPE_CARD_NUMBER:-4242424242424242}
+  STRIPE_CARD_EXP: ${STRIPE_CARD_EXP:-12/30}
+  STRIPE_CARD_CVC: ${STRIPE_CARD_CVC:-123}
+  STRIPE_CARD_ZIP: ${STRIPE_CARD_ZIP:-12345}
+
 services:
   selenium-chrome:
     image: selenium/standalone-chrome:4.16.1
@@ -14,76 +34,50 @@ services:
       start_period: 30s
 
   selenium-tests:
-    image: selenium-tests:latest
+    image: bookstore-selenium-tests:latest
     build:
       context: .
-      dockerfile: selenium/Dockerfile
-    entrypoint: ["/bin/sh", "-lc"]
-    working_dir: /work/selenium
+      dockerfile: tests/selenium/Dockerfile
     depends_on:
       selenium-chrome:
         condition: service_healthy
     environment:
-      BASE_URL: http://wordpress
+      <<: *test_env
       SELENIUM_REMOTE_URL: http://selenium-chrome:4444/wd/hub
-      NPM_CONFIG_UPDATE_NOTIFIER: "false"
-      NPM_CONFIG_FUND: "false"
-      NPM_CONFIG_AUDIT: "false"
-      NPM_CONFIG_LOGLEVEL: "error"
     volumes:
       - ./:/work
+      - ./reports:/work/reports
     networks:
       - wpsite
-    command:
-      [
-        "npm ci --no-audit --no-fund --loglevel=error --silent && mkdir -p /work/results/selenium && for f in tests/*.js; do REPORT_PATH=/work/results/selenium/$(basename \"$$f\" .js).xml node \"$$f\"; done"
-      ]
+    command: ["npm", "run", "test"]
 
   cypress-tests:
-    image: cypress-tests:latest
+    image: bookstore-cypress-tests:latest
     build:
       context: .
-      dockerfile: cypress/Dockerfile
-    entrypoint: ["/bin/sh", "-lc"]
-    working_dir: /work/cypress
+      dockerfile: tests/cypress/Dockerfile
     environment:
-      CYPRESS_BASE_URL: http://wordpress
-      CYPRESS_NO_COMMAND_LOG: "1"
-      CYPRESS_LOG_LEVEL: "error"
-      NPM_CONFIG_UPDATE_NOTIFIER: "false"
-      NPM_CONFIG_FUND: "false"
-      NPM_CONFIG_AUDIT: "false"
-      NPM_CONFIG_LOGLEVEL: "error"
+      <<: *test_env
     volumes:
       - ./:/work
+      - ./reports:/work/reports
     networks:
       - wpsite
-    command:
-      [
-        "npm ci --no-audit --no-fund --loglevel=error --silent && mkdir -p /work/results/cypress && npx cypress run --quiet"
-      ]
+    command: ["npm", "run", "test"]
 
   playwright-tests:
-    image: playwright-tests:latest
+    image: bookstore-playwright-tests:latest
     build:
       context: .
-      dockerfile: playwright/Dockerfile
-    entrypoint: ["/bin/sh", "-lc"]
-    working_dir: /work/playwright
+      dockerfile: tests/playwright/Dockerfile
     environment:
-      BASE_URL: http://wordpress
-      NPM_CONFIG_UPDATE_NOTIFIER: "false"
-      NPM_CONFIG_FUND: "false"
-      NPM_CONFIG_AUDIT: "false"
-      NPM_CONFIG_LOGLEVEL: "error"
+      <<: *test_env
     volumes:
       - ./:/work
+      - ./reports:/work/reports
     networks:
       - wpsite
-    command:
-      [
-        "npm ci --no-audit --no-fund --loglevel=error --silent && mkdir -p /work/results/playwright && npx playwright test --quiet"
-      ]
+    command: ["npm", "run", "test"]
 
 networks:
   wpsite: {}

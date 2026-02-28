@@ -1,0 +1,9 @@
+{
+  "name": "@bookstore/shared",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "fast-xml-parser": "5.4.1"
+  }
+}
